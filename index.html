@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pulse Studio丨賽事抽獎系統</title>
+    <link rel="icon" type="image/png" href="pulse-studio-icon.png">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        pulse: {
+                            light: '#D485F0',
+                            DEFAULT: '#B949EA',
+                            dark: '#8A2BE2',
+                            bg: '#1a1a2e',
+                            card: '#16213e'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Noto Sans TC', 'sans-serif'],
+                    },
+                    animation: {
+                        'glow': 'glow 2s ease-in-out infinite alternate',
+                        'fade-in': 'fadeIn 0.5s ease-out forwards', // 新增 fade-in 動畫
+                    },
+                    keyframes: {
+                        glow: {
+                            '0%': { boxShadow: '0 0 5px #B949EA, 0 0 10px #B949EA' },
+                            '100%': { boxShadow: '0 0 20px #B949EA, 0 0 30px #B949EA' },
+                        },
+                        fadeIn: { // 定義淡入關鍵影格
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0f0f1a;
+            color: #e2e8f0;
+            background-image: radial-gradient(circle at 50% 0%, #2d1b4e 0%, #0f0f1a 70%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1a1a2e; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4a4a6a; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #B949EA; 
+        }
+
+        .glass-panel {
+            background: rgba(22, 33, 62, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(185, 73, 234, 0.2);
+        }
+
+        .tab-btn.active {
+            background-color: #B949EA;
+            color: white;
+            box-shadow: 0 0 15px rgba(185, 73, 234, 0.5);
+        }
+
+        .slot-machine-text {
+            text-shadow: 0 0 10px rgba(185, 73, 234, 0.8);
+        }
+    </style>
+</head>
+<body class="font-sans">
+
+    <!-- Header -->
+    <header class="w-full p-4 border-b border-purple-900/50 bg-opacity-80 bg-slate-900 sticky top-0 z-50 backdrop-blur-md">
+        <div class="max-w-4xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <!-- Icon Placeholder if image fails -->
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-lg shadow-purple-500/30">
+                    <i class="fa-solid fa-trophy"></i>
+                </div>
+                <h1 class="text-xl md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-[#B949EA]">
+                    Pulse Studio丨賽事抽獎系統
+                </h1>
+            </div>
+            <!-- Navigation -->
+            <nav class="flex gap-2">
+                <button onclick="switchTab('entry')" id="btn-entry" class="tab-btn active px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 hover:bg-purple-900/50">
+                    <i class="fa-solid fa-user-plus mr-1"></i> 名單輸入
+                </button>
+                <button onclick="switchTab('lottery')" id="btn-lottery" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 hover:bg-purple-900/50">
+                    <i class="fa-solid fa-dice mr-1"></i> 抽獎執行
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow container max-w-4xl mx-auto p-4 md:p-6 relative">
+        
+        <!-- Tab 1: Entry Form -->
+        <section id="tab-entry" class="space-y-6 animate-fade-in">
+            <div class="glass-panel p-6 rounded-2xl shadow-xl">
+                <h2 class="text-xl font-bold mb-4 text-purple-300 border-l-4 border-[#B949EA] pl-3">新增抽獎者</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div class="space-y-1">
+                        <label class="text-xs text-gray-400 ml-1">隊名 (Team Name)</label>
+                        <input type="text" id="input-team" placeholder="輸入隊名" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 focus:outline-none focus:border-[#B949EA] focus:ring-1 focus:ring-[#B949EA] transition-colors text-white">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-xs text-gray-400 ml-1">Riot ID</label>
+                        <input type="text" id="input-riot" placeholder="Riot ID #Tag" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 focus:outline-none focus:border-[#B949EA] focus:ring-1 focus:ring-[#B949EA] transition-colors text-white">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-xs text-gray-400 ml-1">Discord ID</label>
+                        <input type="text" id="input-discord" placeholder="Username" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 focus:outline-none focus:border-[#B949EA] focus:ring-1 focus:ring-[#B949EA] transition-colors text-white">
+                    </div>
+                </div>
+                
+                <div class="flex justify-end gap-3">
+                     <button onclick="clearAllData()" class="px-6 py-2 rounded-lg border border-red-500/50 text-red-400 hover:bg-red-500/10 transition-colors text-sm">
+                        <i class="fa-solid fa-trash mr-1"></i> 清空所有
+                    </button>
+                    <button onclick="addParticipant()" class="bg-[#B949EA] hover:bg-[#a33cd6] text-white px-8 py-2 rounded-lg font-bold shadow-lg shadow-purple-500/20 transition-all transform hover:scale-105 active:scale-95">
+                        <i class="fa-solid fa-plus mr-1"></i> 新增資料
+                    </button>
+                </div>
+            </div>
+
+            <!-- List Display -->
+            <div class="glass-panel p-6 rounded-2xl shadow-xl">
+                <div class="flex justify-between items-end mb-4 border-b border-gray-700 pb-2">
+                    <h2 class="text-xl font-bold text-white">已登錄的抽獎者</h2>
+                    <span id="entry-count" class="text-sm text-purple-400 font-mono bg-purple-900/30 px-2 py-1 rounded">共 0 位</span>
+                </div>
+                
+                <div class="overflow-hidden rounded-lg border border-slate-700">
+                    <table class="w-full text-left text-sm text-gray-300">
+                        <thead class="bg-slate-800 text-xs uppercase bg-opacity-80 text-gray-400">
+                            <tr>
+                                <th class="px-4 py-3 w-16 text-center">#</th>
+                                <th class="px-4 py-3">隊名</th>
+                                <th class="px-4 py-3">Riot ID</th>
+                                <th class="px-4 py-3">Discord ID</th>
+                                <th class="px-4 py-3 w-16 text-center">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="participants-list-body" class="divide-y divide-slate-700 bg-slate-900/50">
+                            <!-- Data injected here -->
+                            <tr>
+                                <td colspan="5" class="text-center py-8 text-gray-500 italic">尚無資料，請上方輸入</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 2: Lottery Execution -->
+        <section id="tab-lottery" class="hidden space-y-6 animate-fade-in">
+            
+            <!-- Top Half: Scrollable List -->
+            <div class="glass-panel p-4 rounded-2xl shadow-xl h-64 flex flex-col">
+                <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-list-ul text-[#B949EA]"></i> 候選名單預覽
+                </h3>
+                <!-- Add headers for clarity -->
+                <div class="flex text-xs text-gray-500 px-3 pb-2 border-b border-gray-700/50 mb-2">
+                    <div class="w-8">#</div>
+                    <div class="flex-1">隊名</div>
+                    <div class="flex-1">Riot ID</div>
+                    <div class="flex-1 text-right">Discord ID</div>
+                </div>
+                <div class="flex-grow overflow-y-auto pr-2 custom-scrollbar" id="lottery-preview-list">
+                    <!-- Compact list will be rendered here -->
+                </div>
+            </div>
+
+            <!-- Bottom Half: Execution Area -->
+            <div class="relative glass-panel rounded-2xl shadow-2xl overflow-hidden border-2 border-[#B949EA]/30">
+                <!-- Decorative background elements -->
+                <div class="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20"></div>
+                <div class="absolute -top-10 -right-10 w-40 h-40 bg-purple-600 rounded-full blur-[80px] opacity-30"></div>
+                <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-blue-600 rounded-full blur-[80px] opacity-30"></div>
+
+                <div class="relative z-10 p-10 flex flex-col items-center justify-center min-h-[350px]">
+                    
+                    <!-- Slot Machine Window -->
+                    <div class="w-full max-w-lg bg-black/80 border-4 border-[#B949EA] rounded-xl p-2 shadow-[0_0_30px_rgba(185,73,234,0.3)] mb-8 transform transition-transform hover:scale-[1.01]">
+                        <div class="h-32 overflow-hidden relative bg-gradient-to-b from-black via-slate-900 to-black rounded-lg flex items-center justify-center">
+                            <!-- Overlay Shadows for depth -->
+                            <div class="absolute top-0 left-0 w-full h-8 bg-gradient-to-b from-black to-transparent z-20"></div>
+                            <div class="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-black to-transparent z-20"></div>
+                            
+                            <!-- The Rolling Text -->
+                            <div id="lottery-display" class="text-3xl md:text-5xl font-black text-white text-center tracking-wider slot-machine-text whitespace-nowrap px-4">
+                                READY?
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Button -->
+                    <button id="start-btn" onclick="startLottery()" class="group relative px-8 py-4 bg-transparent overflow-hidden rounded-full">
+                        <span class="absolute inset-0 w-full h-full bg-gradient-to-r from-purple-600 to-[#B949EA] opacity-80 group-hover:opacity-100 transition-opacity duration-300"></span>
+                        <span class="absolute bottom-0 right-0 block w-64 h-64 mb-32 mr-4 transition duration-500 origin-bottom-left transform rotate-45 translate-x-24 bg-pink-500 rounded-full opacity-30 group-hover:rotate-90 ease"></span>
+                        <span class="relative text-white font-bold text-xl uppercase tracking-widest flex items-center gap-2">
+                            <i class="fa-solid fa-play"></i> 開始抽獎
+                        </span>
+                    </button>
+                    
+                    <div id="lottery-status" class="mt-4 text-purple-300 font-mono text-sm opacity-0 transition-opacity">
+                        系統運作中...
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full py-6 bg-slate-900 border-t border-slate-800 text-center text-gray-500 text-sm">
+        <p>&copy; 2025-2026 Pulse Studio | All Rights Reserved.</p>
+    </footer>
+
+    <!-- Custom Toast Notification -->
+    <div id="toast" class="fixed top-24 right-5 bg-slate-800 border-l-4 border-[#B949EA] text-white px-6 py-4 rounded shadow-2xl transform translate-x-full transition-transform duration-300 z-50 flex items-center gap-3">
+        <i class="fa-solid fa-circle-check text-[#B949EA]"></i>
+        <span id="toast-msg">Notification</span>
+    </div>
+
+    <!-- Custom Modal for Winner -->
+    <div id="winner-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] hidden flex items-center justify-center opacity-0 transition-opacity duration-500">
+        <div class="bg-gradient-to-br from-slate-900 to-purple-900 border border-[#B949EA] p-1 rounded-2xl max-w-md w-full mx-4 transform scale-90 transition-transform duration-300" id="winner-card">
+            <div class="bg-[#0f0f1a] rounded-xl p-8 text-center relative overflow-hidden">
+                <!-- Confetti bg effect -->
+                <div class="absolute inset-0 overflow-hidden pointer-events-none">
+                     <div class="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30 animate-pulse"></div>
+                </div>
+
+                <div class="relative z-10">
+                    <div class="w-20 h-20 bg-[#B949EA] rounded-full mx-auto mb-6 flex items-center justify-center shadow-[0_0_30px_#B949EA] animate-bounce">
+                        <i class="fa-solid fa-crown text-4xl text-white"></i>
+                    </div>
+                    <h3 class="text-gray-400 text-lg uppercase tracking-widest mb-2">Winner</h3>
+                    <h2 id="modal-winner-name" class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-purple-200 to-white mb-2">
+                        TEAM NAME
+                    </h2>
+                    <p id="modal-winner-detail" class="text-purple-300 text-sm font-mono mb-8">
+                        ID: Name#TAG
+                    </p>
+                    <button onclick="closeModal()" class="w-full py-3 rounded-lg bg-gradient-to-r from-[#B949EA] to-purple-600 text-white font-bold hover:shadow-[0_0_20px_rgba(185,73,234,0.4)] transition-shadow">
+                        確認
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Data Management ---
+        const STORAGE_KEY = 'pulse_studio_lottery_data_v1';
+        let participants = [];
+
+        // Load data on start
+        window.addEventListener('DOMContentLoaded', () => {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                participants = JSON.parse(stored);
+                renderTable();
+                renderLotteryList();
+            }
+        });
+
+        // Tab Switching
+        function switchTab(tabName) {
+            // Hide all sections
+            document.getElementById('tab-entry').classList.add('hidden');
+            document.getElementById('tab-lottery').classList.add('hidden');
+            
+            // Deactivate buttons
+            document.getElementById('btn-entry').classList.remove('active');
+            document.getElementById('btn-lottery').classList.remove('active');
+            
+            // Show selected
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            document.getElementById(`btn-${tabName}`).classList.add('active');
+
+            if(tabName === 'lottery') {
+                renderLotteryList();
+            }
+        }
+
+        // Add Participant
+        function addParticipant() {
+            const teamInput = document.getElementById('input-team');
+            const riotInput = document.getElementById('input-riot');
+            const discordInput = document.getElementById('input-discord');
+
+            const team = teamInput.value.trim();
+            const riotId = riotInput.value.trim();
+            const discordId = discordInput.value.trim();
+
+            if (!team || !riotId || !discordId) {
+                showToast("請填寫所有欄位", true);
+                return;
+            }
+
+            const newEntry = {
+                id: Date.now(),
+                team: team,
+                riotId: riotId,
+                discordId: discordId
+            };
+
+            participants.push(newEntry);
+            saveData();
+            
+            // Clear inputs
+            teamInput.value = '';
+            riotInput.value = '';
+            discordInput.value = '';
+            teamInput.focus();
+
+            renderTable();
+            showToast(`新增成功，此為第 ${participants.length} 位抽獎者`);
+        }
+
+        // Delete Participant
+        function deleteParticipant(id) {
+            if(confirm('確定要刪除這位參賽者嗎？')) {
+                participants = participants.filter(p => p.id !== id);
+                saveData();
+                renderTable();
+                renderLotteryList();
+                showToast("已刪除資料");
+            }
+        }
+
+        // Clear All
+        function clearAllData() {
+            if(confirm('警告：確定要清空所有名單嗎？此動作無法復原。')) {
+                participants = [];
+                saveData();
+                renderTable();
+                renderLotteryList();
+                showToast("名單已清空");
+            }
+        }
+
+        // Save to LocalStorage
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(participants));
+            updateCount();
+        }
+
+        // Render Table (Tab 1)
+        function renderTable() {
+            const tbody = document.getElementById('participants-list-body');
+            tbody.innerHTML = '';
+
+            if (participants.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-500 italic">尚無資料，請上方輸入</td></tr>';
+                return;
+            }
+
+            participants.forEach((p, index) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-800 transition-colors border-b border-slate-800/50";
+                tr.innerHTML = `
+                    <td class="px-4 py-3 text-center text-gray-500">${index + 1}</td>
+                    <td class="px-4 py-3 font-bold text-white">${escapeHtml(p.team)}</td>
+                    <td class="px-4 py-3 text-purple-200">${escapeHtml(p.riotId)}</td>
+                    <td class="px-4 py-3 text-gray-400">${escapeHtml(p.discordId)}</td>
+                    <td class="px-4 py-3 text-center">
+                        <button onclick="deleteParticipant(${p.id})" class="text-red-400 hover:text-red-300 transition-colors">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            updateCount();
+        }
+
+        // Render Preview List (Tab 2)
+        function renderLotteryList() {
+            const container = document.getElementById('lottery-preview-list');
+            container.innerHTML = '';
+
+            if (participants.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-500 py-10">名單為空，無法進行抽獎</div>';
+                return;
+            }
+
+            participants.forEach((p, index) => {
+                const item = document.createElement('div');
+                item.className = "flex items-center text-sm bg-slate-800/50 p-3 mb-2 rounded border-l-2 border-transparent hover:border-[#B949EA] transition-all";
+                
+                // Modified layout: Equal spacing for info
+                item.innerHTML = `
+                    <div class="w-8 text-xs font-mono text-gray-500">#${index+1}</div>
+                    <div class="flex-1 text-gray-300 truncate pr-2" title="${escapeHtml(p.team)}">${escapeHtml(p.team)}</div>
+                    <div class="flex-1 font-bold text-white truncate pr-2 text-[#B949EA]" title="${escapeHtml(p.riotId)}">${escapeHtml(p.riotId)}</div>
+                    <div class="flex-1 text-gray-400 truncate text-right" title="${escapeHtml(p.discordId)}">${escapeHtml(p.discordId)}</div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function updateCount() {
+            document.getElementById('entry-count').innerText = `共 ${participants.length} 位`;
+        }
+
+        // --- Lottery Logic ---
+        let isRunning = false;
+
+        function startLottery() {
+            if (isRunning) return;
+            if (participants.length === 0) {
+                showToast("沒有參加者，無法抽獎", true);
+                return;
+            }
+
+            isRunning = true;
+            const btn = document.getElementById('start-btn');
+            const status = document.getElementById('lottery-status');
+            const display = document.getElementById('lottery-display');
+            
+            // Visual state change
+            btn.classList.add('opacity-50', 'cursor-not-allowed', 'grayscale');
+            status.style.opacity = '1';
+            display.classList.remove('text-[#B949EA]');
+            display.classList.add('text-white');
+
+            // Pick winner logic
+            const winnerIndex = Math.floor(Math.random() * participants.length);
+            const winner = participants[winnerIndex];
+
+            // Animation Configuration
+            // Logic: Slow start -> Accelerate -> Max Speed -> Decelerate -> Stop
+            let currentDelay = 300; // Starting slow (ms)
+            const minDelay = 50;    // Fastest speed
+            let steps = 0;
+            const totalSteps = 40 + Math.floor(Math.random() * 20); // Random duration
+            let activeIndex = 0;
+
+            const animate = () => {
+                // Pick a random name to show (visual only)
+                const showIndex = Math.floor(Math.random() * participants.length);
+                
+                // CHANGED: Display Riot ID instead of Team
+                display.innerText = participants[showIndex].riotId;
+
+                steps++;
+
+                // Speed Control Logic
+                if (steps < 10) {
+                    // Phase 1: Accelerate
+                    currentDelay *= 0.8; 
+                } else if (steps > totalSteps - 15) {
+                    // Phase 3: Decelerate (Slow down near end)
+                    currentDelay *= 1.2;
+                } else {
+                    // Phase 2: Max Speed
+                    currentDelay = minDelay;
+                }
+
+                // Make sure delay doesn't get weird
+                if(currentDelay < minDelay) currentDelay = minDelay;
+
+                if (steps < totalSteps) {
+                    setTimeout(animate, currentDelay);
+                } else {
+                    // End of animation
+                    finishLottery(winner);
+                }
+            };
+
+            setTimeout(animate, currentDelay);
+        }
+
+        function finishLottery(winner) {
+            const display = document.getElementById('lottery-display');
+            const btn = document.getElementById('start-btn');
+            const status = document.getElementById('lottery-status');
+
+            // Set final winner text - CHANGED: Riot ID
+            display.innerText = winner.riotId;
+            display.classList.add('text-[#B949EA]');
+            display.classList.remove('text-white');
+
+            // Reset UI state
+            isRunning = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed', 'grayscale');
+            status.style.opacity = '0';
+
+            // Show Winner Modal
+            setTimeout(() => {
+                showWinnerModal(winner);
+            }, 500);
+        }
+
+        // --- UI Utilities ---
+        function showWinnerModal(winner) {
+            const modal = document.getElementById('winner-modal');
+            const card = document.getElementById('winner-card');
+            
+            // CHANGED: Main text is Riot ID
+            document.getElementById('modal-winner-name').innerText = winner.riotId;
+            
+            // CHANGED: Sub text is Team | Discord
+            document.getElementById('modal-winner-detail').innerText = `Team: ${winner.team} 丨 Discord ID: ${winner.discordId}`;
+
+            modal.classList.remove('hidden');
+            // Small delay to allow display:block to apply before opacity transition
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                card.classList.remove('scale-90');
+                card.classList.add('scale-100');
+            }, 10);
+
+            // Confetti effect (optional simplified JS confetti could go here, relying on CSS for now)
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('winner-modal');
+            const card = document.getElementById('winner-card');
+            
+            modal.classList.add('opacity-0');
+            card.classList.add('scale-90');
+            card.classList.remove('scale-100');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            const msgSpan = document.getElementById('toast-msg');
+            const icon = toast.querySelector('i');
+
+            msgSpan.innerText = message;
+            
+            if (isError) {
+                toast.classList.replace('border-[#B949EA]', 'border-red-500');
+                icon.className = 'fa-solid fa-circle-exclamation text-red-500';
+            } else {
+                toast.classList.replace('border-red-500', 'border-[#B949EA]');
+                icon.className = 'fa-solid fa-circle-check text-[#B949EA]';
+            }
+
+            toast.classList.remove('translate-x-full');
+
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+            }, 3000);
+        }
+
+        function escapeHtml(text) {
+            if (!text) return text;
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
